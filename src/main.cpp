@@ -1,15 +1,16 @@
-//KAREN LEONOR CÓRDOVA LÓPEZ -21098
 
+//KAREN LEONOR CÓRDOVA LÓPEZ
 
 #include <Arduino.h>
 #include "driver/ledc.h"
 #include "esp_adc_cal.h"
 
 #define SNLM35 35
-#define BTN_TEMP 13 // Cambia esto al número real del pin del botón
+#define BTN_TEMP 13 
 #define RED 25
 #define GREEN 2
 #define BLUE 15
+#define servoPin 32 
 
 int segmentPins[7] = {18, 19, 21, 22, 23, 12, 26};
 int commonPins[3] = {27, 4, 5};
@@ -60,6 +61,10 @@ void setup() {
   ledcAttachPin(RED, LEDC_CHANNEL_0);
   ledcAttachPin(GREEN, LEDC_CHANNEL_1);
   ledcAttachPin(BLUE, LEDC_CHANNEL_2);
+
+  // Configuración del módulo LEDC para el servo
+  ledcSetup(3, 50, 10); // Canal 3 para el servo, frecuencia 50 Hz, resolución de 10 bits
+  ledcAttachPin(servoPin, 3); // Asignar el pin del servo al canal 3
 
   Serial.begin(115200);
 }
@@ -137,6 +142,11 @@ void loop() {
       ledcWrite(LEDC_CHANNEL_1, 0);     // Apagar LED verde
       ledcWrite(LEDC_CHANNEL_2, 0);     // Apagar LED azul
     }
+
+    // Control del servo motor
+    int servoPosition = map(TempC_LM35, 25, 40, 0, 180); // Ajuste para el rango de 25 a 40 grados
+    ledcWrite(3, servoPosition);
+
   } else {
     // Apagar todos los segmentos si la temperatura no se ha tomado
     // o si los displays no están encendidos
@@ -149,6 +159,9 @@ void loop() {
     ledcWrite(LEDC_CHANNEL_0, 0);
     ledcWrite(LEDC_CHANNEL_1, 0);
     ledcWrite(LEDC_CHANNEL_2, 0);
+
+    // Detener el servo si la temperatura no se ha tomado
+    ledcWrite(3, 0);
   }
 
   // Leer y mostrar la temperatura si el botón se ha presionado
