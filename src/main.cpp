@@ -1,9 +1,15 @@
+//KAREN LEONOR CÓRDOVA LÓPEZ -21098
+
+
 #include <Arduino.h>
 #include "driver/ledc.h"
 #include "esp_adc_cal.h"
 
 #define SNLM35 35
-#define BTN_TEMP 13 
+#define BTN_TEMP 13 // Cambia esto al número real del pin del botón
+#define RED 25
+#define GREEN 2
+#define BLUE 15
 
 int segmentPins[7] = {18, 19, 21, 22, 23, 12, 26};
 int commonPins[3] = {27, 4, 5};
@@ -43,6 +49,17 @@ void setup() {
 
   pinMode(Dot, OUTPUT);
   pinMode(BTN_TEMP, INPUT_PULLUP);
+  pinMode(RED, OUTPUT);
+  pinMode(GREEN, OUTPUT);
+  pinMode(BLUE, OUTPUT);
+
+  // Configuración de los temporizadores del LEDC
+  ledcSetup(LEDC_CHANNEL_0, 5000, 13);
+  ledcSetup(LEDC_CHANNEL_1, 5000, 13);
+  ledcSetup(LEDC_CHANNEL_2, 5000, 13);
+  ledcAttachPin(RED, LEDC_CHANNEL_0);
+  ledcAttachPin(GREEN, LEDC_CHANNEL_1);
+  ledcAttachPin(BLUE, LEDC_CHANNEL_2);
 
   Serial.begin(115200);
 }
@@ -61,7 +78,7 @@ void loop() {
 
       if (reading == LOW && (currentTime - lastButtonPressTime) > debounceDelay) {
         lastButtonPressTime = currentTime;
-        
+
         // Actualizar la temperatura al presionar el botón nuevamente
         temperatureTaken = false;
       }
@@ -105,6 +122,21 @@ void loop() {
         digitalWrite(segmentPins[i], LOW); // Apagar todos los segmentos antes de cambiar de visualización
       }
     }
+
+    // Control de color del LED RGB según la temperatura
+    if (TempC_LM35 < 37.0) {
+      ledcWrite(LEDC_CHANNEL_0, 0);     // Apagar LED rojo
+      ledcWrite(LEDC_CHANNEL_1, 255);   // Encender LED verde
+      ledcWrite(LEDC_CHANNEL_2, 0);     // Apagar LED azul
+    } else if (TempC_LM35 >= 37.0 && TempC_LM35 <= 37.5) {
+      ledcWrite(LEDC_CHANNEL_0, 255);   // Encender LED rojo
+      ledcWrite(LEDC_CHANNEL_1, 255);   // Encender LED verde
+      ledcWrite(LEDC_CHANNEL_2, 0);     // Apagar LED azul
+    } else {
+      ledcWrite(LEDC_CHANNEL_0, 255);   // Encender LED rojo
+      ledcWrite(LEDC_CHANNEL_1, 0);     // Apagar LED verde
+      ledcWrite(LEDC_CHANNEL_2, 0);     // Apagar LED azul
+    }
   } else {
     // Apagar todos los segmentos si la temperatura no se ha tomado
     // o si los displays no están encendidos
@@ -112,6 +144,11 @@ void loop() {
       digitalWrite(segmentPins[i], LOW);
     }
     digitalWrite(Dot, LOW);
+
+    // Apagar el LED RGB si la temperatura no se ha tomado
+    ledcWrite(LEDC_CHANNEL_0, 0);
+    ledcWrite(LEDC_CHANNEL_1, 0);
+    ledcWrite(LEDC_CHANNEL_2, 0);
   }
 
   // Leer y mostrar la temperatura si el botón se ha presionado
